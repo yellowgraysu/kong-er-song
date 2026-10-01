@@ -1,0 +1,324 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#fff4d6">
+<title>華語空耳猜歌</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@500;700;900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #fff4d6; --ink: #1b1b1b; --muted: #6f6656; --card: #ffffff; --line: #1b1b1b;
+    --pink: #ff4f8b; --yellow: #ffd23f; --blue: #3a86ff;
+    --shadow: 4px 4px 0 var(--line);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #17151f; --ink: #f4f1ea; --muted: #a59fb3; --card: #24212f; --line: #f4f1ea;
+      --pink: #ff6b9d; --yellow: #ffd23f; --blue: #6ea8ff;
+    }
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    background: var(--bg); color: var(--ink);
+    font-family: "Noto Sans TC", -apple-system, "PingFang TC", "Microsoft JhengHei", sans-serif;
+    font-weight: 500;
+  }
+  .screen { display: none; height: 100dvh; max-width: 480px; margin: 0 auto;
+    padding: max(16px, env(safe-area-inset-top)) 16px max(16px, env(safe-area-inset-bottom));
+    flex-direction: column; gap: 16px; }
+  .screen.on { display: flex; }
+  button { font: inherit; color: inherit; cursor: pointer; }
+
+  .btn { display: block; width: 100%; border: 2.5px solid var(--line); border-radius: 14px;
+    background: var(--card); padding: 15px 18px; font-size: 18px; font-weight: 900;
+    box-shadow: var(--shadow); transition: transform .08s, box-shadow .08s; text-align: center; color: var(--ink); }
+  .btn:active { transform: translate(3px, 3px); box-shadow: 1px 1px 0 var(--line); }
+  .btn.primary { background: var(--pink); color: #fff; }
+  .btn:disabled { opacity: .5; box-shadow: none; transform: none; cursor: default; }
+  .btn.yellow { background: var(--yellow); color: #1b1b1b; }
+  .row { display: flex; gap: 12px; }
+  .row > * { flex: 1; }
+
+  /* 首頁 */
+  .hero { margin: auto 0; text-align: center; }
+  .hero h1 { font-size: clamp(52px, 16vw, 76px); font-weight: 900; line-height: 1; margin: 0;
+    letter-spacing: 2px; transform: rotate(-3deg); }
+  .hero h1 span { display: inline-block; background: var(--yellow); color: #1b1b1b; padding: 0 10px;
+    border: 3px solid var(--line); box-shadow: var(--shadow); margin: 6px 0; }
+  .hero h1 span:nth-of-type(2) { background: var(--pink); color: #fff; transform: rotate(4deg); }
+  .hero p { color: var(--muted); margin: 22px 0 0; font-size: 15px; }
+  .toggle { display: flex; justify-content: space-between; align-items: center; font-weight: 700;
+    background: var(--card); border: 2.5px solid var(--line); border-radius: 14px; padding: 12px 16px; box-shadow: var(--shadow); }
+  .switch { width: 52px; height: 30px; border-radius: 15px; border: 2px solid var(--line); background: var(--bg);
+    position: relative; padding: 0; flex: none; }
+  .switch::after { content: ""; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 50%;
+    background: var(--ink); transition: left .15s; }
+  .switch.on { background: var(--pink); }
+  .switch.on::after { left: 25px; background: #fff; }
+
+  /* 遊戲 */
+  .topbar { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 15px; }
+  .quit { border: 2px solid var(--line); background: var(--card); border-radius: 10px; width: 36px; height: 36px;
+    font-size: 18px; line-height: 1; padding: 0; flex: none; }
+  .progress { flex: 1; height: 10px; border: 2px solid var(--line); border-radius: 6px; overflow: hidden; }
+  .progress i { display: block; height: 100%; background: var(--yellow); transition: width .3s; }
+  .qcard { background: var(--card); border: 3px solid var(--line); border-radius: 18px; box-shadow: 6px 6px 0 var(--line);
+    padding: 22px 20px 26px; position: relative; margin-top: 10px; }
+  .qcard .tag { position: absolute; top: -14px; left: 16px; background: var(--blue); color: #fff; border: 2.5px solid var(--line);
+    border-radius: 8px; padding: 1px 10px; font-size: 13px; font-weight: 900; }
+  .qtext { font-size: clamp(26px, 7.6vw, 36px); font-weight: 900; line-height: 1.35; margin: 8px 0 0;
+    word-break: keep-all; overflow-wrap: anywhere; }
+  .qtext::before, .qtext::after { color: var(--pink); }
+  .qtext::before { content: "「"; } .qtext::after { content: "」"; }
+  .answer { display: none; flex-direction: column; gap: 14px; flex: 1; animation: pop .25s ease-out; }
+  .answer.on { display: flex; }
+  @keyframes pop { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+  .ans-title { text-align: center; }
+  .ans-title .artist { font-size: 15px; color: var(--muted); font-weight: 700; }
+  .ans-title .song { font-size: 28px; font-weight: 900; line-height: 1.25; }
+  .video { position: relative; aspect-ratio: 16 / 9; border: 3px solid var(--line); border-radius: 14px; overflow: hidden;
+    background: #000; box-shadow: var(--shadow); flex: none; }
+  .video iframe, .video > div { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+  .video-msg { position: absolute; inset: 0; display: none; place-items: center; text-align: center; color: #fff;
+    padding: 16px; font-size: 15px; background: rgba(0,0,0,.75); }
+  .video-msg.on { display: grid; }
+  .video-msg a { color: var(--yellow); }
+  .tap-hint { text-align: center; font-size: 13px; color: var(--muted); margin-top: -6px; visibility: hidden; }
+  .tap-hint.on { visibility: visible; }
+  .answer .row { margin-top: auto; }
+  .reveal-wrap { margin-top: auto; }
+
+  /* 結果：10 首一頁放完，不捲動 */
+  #end { gap: 12px; }
+  #end h2 { margin: 0; font-size: 24px; font-weight: 900; text-align: center; }
+  /* 結果頁高度隨內容：按鈕緊接在卡片後面，太長就整頁捲動 */
+  #end { height: auto; min-height: 100dvh; }
+  .results { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; padding: 2px; margin-bottom: 8px; }
+  #end .btn { padding: 12px 18px; }
+  .text-btn { align-self: center; border: 0; background: none; padding: 2px 12px; margin-top: -4px;
+    font-size: 14px; font-weight: 700; color: var(--muted); text-decoration: underline; text-underline-offset: 3px; }
+  .text-btn[hidden] { display: none; }
+  #home .text-btn { margin-top: -6px; }
+  dialog { width: min(440px, calc(100% - 32px)); background: var(--card); color: var(--ink);
+    border: 3px solid var(--line); border-radius: 18px; box-shadow: 6px 6px 0 var(--line); padding: 0; }
+  .dialog-body { padding: 20px; }
+  dialog::backdrop { background: rgba(0, 0, 0, .45); }
+  dialog h3 { margin: 0 0 8px; font-size: 20px; font-weight: 900; }
+  dialog p { margin: 0 0 10px; font-size: 14px; line-height: 1.7; }
+  dialog a { color: var(--blue); font-weight: 700; white-space: nowrap; }
+  dialog .btn { margin-top: 14px; padding: 11px; font-size: 16px; }
+  .results > div { display: flex; flex-direction: column; background: var(--card); border: 2px solid var(--line);
+    border-radius: 10px; padding: 8px 10px; }
+  .results .s { font-weight: 900; font-size: 15px; line-height: 1.3; margin-left: -4px; }
+  .results .a { font-size: 12px; color: var(--muted); font-weight: 700; white-space: nowrap; }
+  .results .q { font-size: 12px; line-height: 1.35; margin-top: 3px; }
+</style>
+</head>
+<body>
+
+<!-- 首頁 -->
+<section class="screen on" id="home">
+  <div class="hero">
+    <h1><span>華語空耳</span><br><span>猜歌</span></h1>
+    <p>安捏怪怪，<br>這些歌詞怎麼越聽越怪？</p>
+  </div>
+  <div class="toggle">包含限制級題目 <button class="switch" id="nsfw" aria-label="包含限制級題目"></button></div>
+  <button class="btn primary" id="startBtn">開始猜歌</button>
+  <button class="text-btn" id="aboutBtn">關於這個網站</button>
+</section>
+
+<dialog id="about"><div class="dialog-body">
+  <h3>關於這個網站</h3>
+  <p>這是一個非官方的個人 Vibe Coding 練習作品。題目中的空耳句整理自各大網路社群的網友分享，不代表原唱者或詞曲創作者的本意。</p>
+  <p>歌曲與影片的版權皆屬原權利人所有。影片透過 YouTube 官方播放器嵌入播放，本站不儲存、也不散布任何音樂檔案。</p>
+  <p>部分題目含成人用語，預設不顯示。</p>
+  <p>如有內容需要更正或建議，歡迎到 <a href="https://github.com/yellowgraysu/kong-er-song/issues/new" target="_blank" rel="noopener">GitHub 回報</a>。</p>
+  <button class="btn" id="aboutClose">知道了</button>
+</div></dialog>
+
+<!-- 遊戲 -->
+<section class="screen" id="play">
+  <div class="topbar">
+    <button class="quit" id="quitBtn" aria-label="回首頁">✕</button>
+    <div class="progress"><i id="bar"></i></div>
+    <span id="progText"></span>
+  </div>
+  <div class="qcard">
+    <span class="tag">這句其實是？</span>
+    <p class="qtext" id="qtext"></p>
+  </div>
+  <div class="reveal-wrap" id="revealWrap">
+    <button class="btn yellow" id="revealBtn">揭曉答案</button>
+  </div>
+  <div class="answer" id="answer">
+    <div class="ans-title"><div class="artist" id="aArtist"></div><div class="song" id="aSong"></div></div>
+    <div class="video">
+      <div id="player"></div>
+      <div class="video-msg" id="videoMsg"></div>
+    </div>
+    <div class="tap-hint" id="tapHint">沒有聲音？點一下影片播放 ▶</div>
+    <div class="row">
+      <button class="btn" id="replayBtn">↻ 再聽一次</button>
+      <button class="btn primary" id="nextBtn">下一題</button>
+    </div>
+  </div>
+</section>
+
+<!-- 結果 -->
+<section class="screen" id="end">
+  <h2 id="endTitle"></h2>
+  <div class="results" id="results"></div>
+  <div class="row">
+    <button class="btn" id="homeBtn">回首頁</button>
+    <button class="btn primary" id="againBtn">重新洗牌</button>
+  </div>
+  <button class="text-btn" id="moreBtn">還有嗎？</button>
+</section>
+
+<script>
+const ROUND_SIZE = 10;
+const $ = s => document.querySelector(s);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const clipUrl = q => `https://www.youtube.com/watch?v=${q.youtubeId}&t=${Math.floor(q.start)}s`;
+
+const NSFW_KEY = 'kongEr.nsfw';
+let nsfw = false;
+try { nsfw = localStorage.getItem(NSFW_KEY) === '1'; } catch (e) {}
+
+let all = [], deck = [], round = [], idx = 0;
+let player = null, ytReady = false, current = null, hintTimer = null;
+
+function show(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.toggle('on', s.id === id));
+  window.scrollTo(0, 0);
+}
+
+function renderToggle() { $('#nsfw').classList.toggle('on', nsfw); }
+$('#nsfw').onclick = () => {
+  nsfw = !nsfw;
+  try { localStorage.setItem(NSFW_KEY, nsfw ? '1' : '0'); } catch (e) {}
+  renderToggle();
+};
+
+function shuffle(a) {
+  for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
+  return a;
+}
+
+// deck：洗好的整副題目。第一輪抽 10 題，「還有嗎？」把剩下的全部變成下一輪
+function newDeck() {
+  if (!all.length) return;
+  deck = shuffle(all.filter(q => nsfw || !q.nsfw));
+  playRound(deck.splice(0, ROUND_SIZE));
+}
+
+function playRound(qs) {
+  if (!qs.length) return;
+  round = qs;
+  idx = 0;
+  show('play'); renderQuestion();
+}
+
+function renderQuestion() {
+  current = round[idx];
+  stopVideo();
+  $('#qtext').textContent = current.question;
+  $('#progText').textContent = `${idx + 1}/${round.length}`;
+  $('#bar').style.width = `${(idx / round.length) * 100}%`;
+  $('#revealWrap').style.display = '';
+  $('#answer').classList.remove('on');
+  $('#nextBtn').textContent = idx === round.length - 1 ? '看結果' : '下一題';
+}
+
+function reveal() {
+  $('#aArtist').textContent = current.artist;
+  $('#aSong').textContent = `〈${current.song}〉`;
+  $('#revealWrap').style.display = 'none';
+  $('#answer').classList.add('on');
+  playClip();
+}
+
+function playClip() {
+  $('#videoMsg').classList.remove('on');
+  if (!ytReady) { showMsg('播放器載入中，請稍候再按「再聽一次」'); return; }
+  // 被隱藏過的播放器會叫不動，所以每次都重建一個新的
+  destroyPlayer();
+  player = new YT.Player('player', {
+    videoId: current.youtubeId,
+    playerVars: { start: Math.floor(current.start), end: Math.ceil(current.end), autoplay: 1, playsinline: 1, rel: 0, modestbranding: 1 },
+    events: { onError: onVideoError, onStateChange: onState },
+  });
+  clearTimeout(hintTimer);
+  $('#tapHint').classList.remove('on');
+  hintTimer = setTimeout(() => {
+    const s = player && player.getPlayerState ? player.getPlayerState() : -1;
+    if (s !== YT.PlayerState.PLAYING && s !== YT.PlayerState.BUFFERING) $('#tapHint').classList.add('on');
+  }, 1800);
+}
+
+function onState(e) {
+  if (e.data === YT.PlayerState.PLAYING) $('#tapHint').classList.remove('on');
+}
+
+function onVideoError(e) {
+  const blocked = e.data === 101 || e.data === 150;
+  showMsg(`${blocked ? '這支影片不允許嵌入播放' : '影片無法播放'}<br><a href="${clipUrl(current)}" target="_blank" rel="noopener">到 YouTube 聽這一段 ↗</a>`);
+}
+
+function showMsg(html) { $('#videoMsg').innerHTML = html; $('#videoMsg').classList.add('on'); }
+
+function destroyPlayer() {
+  if (player && player.destroy) player.destroy();
+  player = null;
+  if (!$('#player')) $('.video').insertAdjacentHTML('afterbegin', '<div id="player"></div>');
+}
+
+function stopVideo() {
+  clearTimeout(hintTimer);
+  $('#tapHint').classList.remove('on');
+  destroyPlayer();
+}
+
+function next() {
+  idx++;
+  if (idx < round.length) renderQuestion(); else finish();
+}
+
+function finish() {
+  stopVideo();
+  $('#results').innerHTML = round.map(q => `
+    <div>
+      <div><span class="s">〈${esc(q.song)}〉</span><span class="a">${esc(q.artist)}</span></div>
+      <span class="q">「${esc(q.question)}」</span>
+    </div>`).join('');
+  $('#endTitle').textContent = `這局的 ${round.length} 首歌`;
+  $('#moreBtn').hidden = !deck.length;
+  show('end');
+}
+
+function goHome() { stopVideo(); show('home'); }
+
+$('#startBtn').onclick = newDeck;
+$('#moreBtn').onclick = () => playRound(deck.splice(0));
+$('#revealBtn').onclick = reveal;
+$('#replayBtn').onclick = playClip;
+$('#nextBtn').onclick = next;
+$('#againBtn').onclick = newDeck;
+$('#homeBtn').onclick = goHome;
+$('#quitBtn').onclick = goHome;
+$('#aboutBtn').onclick = () => $('#about').showModal();
+$('#aboutClose').onclick = () => $('#about').close();
+$('#about').onclick = e => { if (e.target === $('#about')) $('#about').close(); }; // 點背景關閉
+
+window.onYouTubeIframeAPIReady = () => { ytReady = true; };
+
+renderToggle();
+fetch('questions.json').then(r => r.json()).then(d => { all = d; });
+</script>
+<script src="https://www.youtube.com/iframe_api"></script>
+</body>
+</html>
