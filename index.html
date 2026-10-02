@@ -133,7 +133,7 @@
 
 <dialog id="about"><div class="dialog-body">
   <h3>關於這個網站</h3>
-  <p>這是一個非官方的個人 Vibe Coding 練習作品。題目中的空耳句整理自各大網路社群的網友分享，不代表原唱者或詞曲創作者的本意。</p>
+  <p>這是一個非官方的個人 Claude 協作練習作品。題目中的空耳句整理自各大網路社群的網友分享，不代表原唱者或詞曲創作者的本意。</p>
   <p>歌曲與影片的版權皆屬原權利人所有。影片透過 YouTube 官方播放器嵌入播放，本站不儲存、也不散布任何音樂檔案。</p>
   <p>部分題目含成人用語，預設不顯示。</p>
   <p>如有內容需要更正或建議，歡迎到 <a href="https://github.com/yellowgraysu/kong-er-song/issues/new" target="_blank" rel="noopener">GitHub 回報</a>。</p>
@@ -190,7 +190,7 @@ let nsfw = false;
 try { nsfw = localStorage.getItem(NSFW_KEY) === '1'; } catch (e) {}
 
 let all = [], deck = [], round = [], idx = 0;
-let player = null, ytReady = false, current = null, hintTimer = null;
+let player = null, ytReady = false, current = null, hintTimer = null, endTimer = null;
 
 function show(id) {
   document.querySelectorAll('.screen').forEach(s => s.classList.toggle('on', s.id === id));
@@ -239,14 +239,32 @@ function reveal() {
   $('#aSong').textContent = `〈${current.song}〉`;
   $('#revealWrap').style.display = 'none';
   $('#answer').classList.add('on');
-  playClip();
+  loadClip();
 }
 
-function playClip() {
+// 再聽一次：在同一個播放器內跳回起點，不重新載入影片，就不會再觸發一次廣告
+function replay() {
+  if (!player || !player.seekTo) return loadClip();
+  $('#videoMsg').classList.remove('on');
+  player.seekTo(current.start, true);
+  player.playVideo();
+}
+
+// 自己盯終點：跳回起點後 YouTube 的 end 參數不一定還有效
+function watchEnd() {
+  clearInterval(endTimer);
+  endTimer = setInterval(() => {
+    if (!player || !player.getCurrentTime || player.getPlayerState() !== YT.PlayerState.PLAYING) return;
+    if (player.getCurrentTime() >= current.end) player.pauseVideo();
+  }, 200);
+}
+
+function loadClip() {
   $('#videoMsg').classList.remove('on');
   if (!ytReady) { showMsg('播放器載入中，請稍候再按「再聽一次」'); return; }
-  // 被隱藏過的播放器會叫不動，所以每次都重建一個新的
+  // 被隱藏過的播放器會叫不動，所以每題揭曉時都建一個新的
   destroyPlayer();
+  watchEnd();
   player = new YT.Player('player', {
     videoId: current.youtubeId,
     playerVars: { start: Math.floor(current.start), end: Math.ceil(current.end), autoplay: 1, playsinline: 1, rel: 0, modestbranding: 1 },
@@ -279,6 +297,7 @@ function destroyPlayer() {
 
 function stopVideo() {
   clearTimeout(hintTimer);
+  clearInterval(endTimer);
   $('#tapHint').classList.remove('on');
   destroyPlayer();
 }
@@ -305,7 +324,7 @@ function goHome() { stopVideo(); show('home'); }
 $('#startBtn').onclick = newDeck;
 $('#moreBtn').onclick = () => playRound(deck.splice(0));
 $('#revealBtn').onclick = reveal;
-$('#replayBtn').onclick = playClip;
+$('#replayBtn').onclick = replay;
 $('#nextBtn').onclick = next;
 $('#againBtn').onclick = newDeck;
 $('#homeBtn').onclick = goHome;
