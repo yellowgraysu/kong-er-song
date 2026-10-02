@@ -190,7 +190,7 @@ let nsfw = false;
 try { nsfw = localStorage.getItem(NSFW_KEY) === '1'; } catch (e) {}
 
 let all = [], deck = [], round = [], idx = 0;
-let player = null, ytReady = false, current = null, hintTimer = null, endTimer = null;
+let player = null, ytReady = false, current = null, hintTimer = null;
 
 function show(id) {
   document.querySelectorAll('.screen').forEach(s => s.classList.toggle('on', s.id === id));
@@ -250,24 +250,14 @@ function replay() {
   player.playVideo();
 }
 
-// 自己盯終點：跳回起點後 YouTube 的 end 參數不一定還有效
-function watchEnd() {
-  clearInterval(endTimer);
-  endTimer = setInterval(() => {
-    if (!player || !player.getCurrentTime || player.getPlayerState() !== YT.PlayerState.PLAYING) return;
-    if (player.getCurrentTime() >= current.end) player.pauseVideo();
-  }, 200);
-}
-
 function loadClip() {
   $('#videoMsg').classList.remove('on');
   if (!ytReady) { showMsg('播放器載入中，請稍候再按「再聽一次」'); return; }
   // 被隱藏過的播放器會叫不動，所以每題揭曉時都建一個新的
   destroyPlayer();
-  watchEnd();
   player = new YT.Player('player', {
     videoId: current.youtubeId,
-    playerVars: { start: Math.floor(current.start), end: Math.ceil(current.end), autoplay: 1, playsinline: 1, rel: 0, modestbranding: 1 },
+    playerVars: { start: Math.floor(current.start), autoplay: 1, playsinline: 1, rel: 0, modestbranding: 1 },
     events: { onError: onVideoError, onStateChange: onState },
   });
   clearTimeout(hintTimer);
@@ -297,7 +287,6 @@ function destroyPlayer() {
 
 function stopVideo() {
   clearTimeout(hintTimer);
-  clearInterval(endTimer);
   $('#tapHint').classList.remove('on');
   destroyPlayer();
 }
